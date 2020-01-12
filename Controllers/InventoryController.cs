@@ -34,7 +34,7 @@ namespace RegisterManagement.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Inventory>> GetInventory(int id)
         {
-            var inventory = await _context.Inventory.FindAsync(id);
+            var inventory = await _context.Inventory.Include(e => e.Item).FirstOrDefaultAsync(i => i.Id == id);
 
             if (inventory == null)
             {
@@ -45,8 +45,6 @@ namespace RegisterManagement.Controllers
         }
 
         // PUT: api/Inventory/5
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for
-        // more details see https://aka.ms/RazorPagesCRUD.
         [HttpPut("{id}")]
         public async Task<IActionResult> PutInventory(int id, Inventory inventory)
         {
@@ -77,11 +75,27 @@ namespace RegisterManagement.Controllers
         }
 
         // POST: api/Inventory
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for
-        // more details see https://aka.ms/RazorPagesCRUD.
         [HttpPost]
         public async Task<ActionResult<Inventory>> PostInventory(Inventory inventory)
         {
+            // check if there is already a row with that itemID
+            var inventoryItem = await _context.Inventory.FirstOrDefaultAsync(i => i.ItemId == inventory.ItemId);
+
+            if (inventoryItem != null)
+            {
+                return BadRequest($"Inventory record for item with the ID: {inventoryItem.ItemId} already exists");
+            }
+
+
+            // check if the item exists
+
+            var item = await _context.Items.FirstOrDefaultAsync(i => i.Id == inventory.ItemId);
+
+            if(item == null)
+            {
+                return BadRequest("Passed item Id does not exist");
+            }
+
             _context.Inventory.Add(inventory);
             await _context.SaveChangesAsync();
 

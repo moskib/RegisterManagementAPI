@@ -9,7 +9,7 @@ namespace RegisterManagement.Models
         [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
-        [Required]
+        [Required, ]
         public int ItemId { get; set; }
 
         [ForeignKey("ItemId")]

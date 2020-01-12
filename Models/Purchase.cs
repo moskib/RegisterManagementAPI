@@ -10,6 +10,7 @@ namespace RegisterManagement.Models
         [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int PurchaseNo { get; set; }
         public ICollection<PurchaseItem> PurchaseItems { get; set; }
+        public string VisaNo { get; set; }
         public DateTime DateOfPurchase { get; set; }
         public DateTime DateModified { get; set; } // for when an item was returned
     }

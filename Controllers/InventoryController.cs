@@ -25,7 +25,9 @@ namespace RegisterManagement.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Inventory>>> GetInventory()
         {
-            return await _context.Inventory.ToListAsync();
+            var list = await _context.Inventory.Include(e => e.Item).ToListAsync();
+
+            return list;
         }
 
         // GET: api/Inventory/5

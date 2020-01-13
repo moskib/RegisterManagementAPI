@@ -53,6 +53,8 @@ namespace RegisterManagement.Controllers
                 return BadRequest();
             }
 
+            inventory.DateModified = DateTime.Now;
+
             _context.Entry(inventory).State = EntityState.Modified;
 
             try
@@ -72,34 +74,6 @@ namespace RegisterManagement.Controllers
             }
 
             return NoContent();
-        }
-
-        // POST: api/Inventory
-        [HttpPost]
-        public async Task<ActionResult<Inventory>> PostInventory(Inventory inventory)
-        {
-            // check if there is already a row with that itemID
-            var inventoryItem = await _context.Inventory.FirstOrDefaultAsync(i => i.ItemId == inventory.ItemId);
-
-            if (inventoryItem != null)
-            {
-                return BadRequest($"Inventory record for item with the ID: {inventoryItem.ItemId} already exists");
-            }
-
-
-            // check if the item exists
-
-            var item = await _context.Items.FirstOrDefaultAsync(i => i.Id == inventory.ItemId);
-
-            if(item == null)
-            {
-                return BadRequest("Passed item Id does not exist");
-            }
-
-            _context.Inventory.Add(inventory);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetInventory", new { id = inventory.Id }, inventory);
         }
 
         private bool InventoryExists(int id)

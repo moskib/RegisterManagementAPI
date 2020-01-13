@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RegisterManagement.Data;
@@ -9,9 +10,10 @@ using RegisterManagement.Data;
 namespace RegisterManagement.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20200113072303_AddedDeletedToInventoryAndItems")]
+    partial class AddedDeletedToInventoryAndItems
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -29,13 +31,14 @@ namespace RegisterManagement.Migrations
                     b.Property<int>("Amount")
                         .HasColumnType("integer");
 
-                    b.Property<DateTime?>("DateCreated")
-                        .IsRequired()
+                    b.Property<DateTime>("DateCreated")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<DateTime?>("DateModified")
-                        .IsRequired()
+                    b.Property<DateTime>("DateModified")
                         .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("ItemId")
                         .HasColumnType("integer");
@@ -51,40 +54,45 @@ namespace RegisterManagement.Migrations
                         {
                             Id = 1,
                             Amount = 500,
-                            DateCreated = new DateTime(2020, 1, 13, 9, 49, 9, 513, DateTimeKind.Local).AddTicks(9666),
-                            DateModified = new DateTime(2020, 1, 13, 9, 49, 9, 516, DateTimeKind.Local).AddTicks(3008),
+                            DateCreated = new DateTime(2020, 1, 13, 9, 23, 3, 219, DateTimeKind.Local).AddTicks(7250),
+                            DateModified = new DateTime(2020, 1, 13, 9, 23, 3, 222, DateTimeKind.Local).AddTicks(1270),
+                            Deleted = false,
                             ItemId = 1
                         },
                         new
                         {
                             Id = 2,
                             Amount = 200,
-                            DateCreated = new DateTime(2020, 1, 13, 9, 49, 9, 516, DateTimeKind.Local).AddTicks(3604),
-                            DateModified = new DateTime(2020, 1, 13, 9, 49, 9, 516, DateTimeKind.Local).AddTicks(3625),
+                            DateCreated = new DateTime(2020, 1, 13, 9, 23, 3, 222, DateTimeKind.Local).AddTicks(1900),
+                            DateModified = new DateTime(2020, 1, 13, 9, 23, 3, 222, DateTimeKind.Local).AddTicks(1919),
+                            Deleted = false,
                             ItemId = 2
                         },
                         new
                         {
                             Id = 3,
                             Amount = 700,
-                            DateCreated = new DateTime(2020, 1, 13, 9, 49, 9, 516, DateTimeKind.Local).AddTicks(3640),
-                            DateModified = new DateTime(2020, 1, 13, 9, 49, 9, 516, DateTimeKind.Local).AddTicks(3644),
+                            DateCreated = new DateTime(2020, 1, 13, 9, 23, 3, 222, DateTimeKind.Local).AddTicks(1933),
+                            DateModified = new DateTime(2020, 1, 13, 9, 23, 3, 222, DateTimeKind.Local).AddTicks(1935),
+                            Deleted = false,
                             ItemId = 3
                         },
                         new
                         {
                             Id = 4,
                             Amount = 1000,
-                            DateCreated = new DateTime(2020, 1, 13, 9, 49, 9, 516, DateTimeKind.Local).AddTicks(3647),
-                            DateModified = new DateTime(2020, 1, 13, 9, 49, 9, 516, DateTimeKind.Local).AddTicks(3649),
+                            DateCreated = new DateTime(2020, 1, 13, 9, 23, 3, 222, DateTimeKind.Local).AddTicks(1938),
+                            DateModified = new DateTime(2020, 1, 13, 9, 23, 3, 222, DateTimeKind.Local).AddTicks(1940),
+                            Deleted = false,
                             ItemId = 4
                         },
                         new
                         {
                             Id = 5,
                             Amount = 1234,
-                            DateCreated = new DateTime(2020, 1, 13, 9, 49, 9, 516, DateTimeKind.Local).AddTicks(3653),
-                            DateModified = new DateTime(2020, 1, 13, 9, 49, 9, 516, DateTimeKind.Local).AddTicks(3656),
+                            DateCreated = new DateTime(2020, 1, 13, 9, 23, 3, 222, DateTimeKind.Local).AddTicks(1944),
+                            DateModified = new DateTime(2020, 1, 13, 9, 23, 3, 222, DateTimeKind.Local).AddTicks(1946),
+                            Deleted = false,
                             ItemId = 5
                         });
                 });
@@ -98,6 +106,9 @@ namespace RegisterManagement.Migrations
 
                     b.Property<double>("Cost")
                         .HasColumnType("double precision");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsRefundable")
                         .HasColumnType("boolean");
@@ -115,6 +126,7 @@ namespace RegisterManagement.Migrations
                         {
                             Id = 1,
                             Cost = 15.99,
+                            Deleted = false,
                             IsRefundable = true,
                             Name = "T-Shirt"
                         },
@@ -122,6 +134,7 @@ namespace RegisterManagement.Migrations
                         {
                             Id = 2,
                             Cost = 5.9900000000000002,
+                            Deleted = false,
                             IsRefundable = false,
                             Name = "Underwear"
                         },
@@ -129,6 +142,7 @@ namespace RegisterManagement.Migrations
                         {
                             Id = 3,
                             Cost = 60.990000000000002,
+                            Deleted = false,
                             IsRefundable = true,
                             Name = "Denim jeans"
                         },
@@ -136,6 +150,7 @@ namespace RegisterManagement.Migrations
                         {
                             Id = 4,
                             Cost = 99.989999999999995,
+                            Deleted = false,
                             IsRefundable = true,
                             Name = "Coat"
                         },
@@ -143,6 +158,7 @@ namespace RegisterManagement.Migrations
                         {
                             Id = 5,
                             Cost = 19.989999999999998,
+                            Deleted = false,
                             IsRefundable = true,
                             Name = "Sweater"
                         });

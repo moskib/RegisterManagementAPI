@@ -19,9 +19,9 @@ namespace RegisterManagement.Models
         public int Amount { get; set; }
 
         [Required]
-        public DateTime DateCreated { get; set; }
+        public DateTime? DateCreated { get; set; }
 
         [Required]
-        public DateTime DateModified { get; set; }
+        public DateTime? DateModified { get; set; }
     }
 }

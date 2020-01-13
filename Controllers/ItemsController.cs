@@ -75,39 +75,31 @@ namespace RegisterManagement.Controllers
         }
 
         // POST: api/Items
-        // To protect from overposting attacks, please enable the specific properties you want to bind to, for
-        // more details see https://aka.ms/RazorPagesCRUD.
         [HttpPost]
         public async Task<ActionResult<Item>> PostItem(Item item)
         {
+
             _context.Items.Add(item);
+
+            //Add new inventory record for the item:
+            var newInventoryRecord =
+               new Inventory()
+               {
+                   ItemId = item.Id,
+                   Item = item,
+                   DateCreated = DateTime.Now,
+                   DateModified = DateTime.Now,
+                   Amount = 0
+               };
+
+
+            await _context.SaveChangesAsync();
+
+            _context.Inventory.Add(newInventoryRecord);
+
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetItem", new { id = item.Id }, item);
-        }
-
-        // DELETE: api/Items/5
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<Item>> DeleteItem(int id)
-        {
-            var inventoryItem = await _context.Inventory.FirstOrDefaultAsync(invItem => invItem.ItemId == id);
-
-            // If there is a record for the item in the inventory, delete it.
-            if(inventoryItem != null)
-            {
-                _context.Inventory.Remove(inventoryItem);
-            }
-
-            var item = await _context.Items.FindAsync(id);
-            if (item == null)
-            {
-                return NotFound();
-            }
-
-            _context.Items.Remove(item);
-            await _context.SaveChangesAsync();
-
-            return item;
         }
 
         private bool ItemExists(int id)

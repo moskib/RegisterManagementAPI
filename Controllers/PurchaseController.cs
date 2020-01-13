@@ -26,14 +26,24 @@ namespace RegisterManagement.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Purchase>>> GetPurchases()
         {
-            return await _context.Purchases.Include(p => p.PurchaseItems).ThenInclude(pi => pi.Item).ToListAsync();
+            return
+                await _context
+                    .Purchases
+                    .Include(p => p.PurchaseItems)
+                    .ThenInclude(pi => pi.Item)
+                    .ToListAsync();
         }
 
         // GET: api/Purchase/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Purchase>> GetPurchase(int id)
         {
-            var purchase = await _context.Purchases.Include(p => p.PurchaseItems).FirstOrDefaultAsync(p => p.PurchaseNo == id);
+            var purchase =
+                await _context
+                    .Purchases
+                    .Include(p => p.PurchaseItems)
+                    .ThenInclude(pi => pi.Item)
+                    .FirstOrDefaultAsync(p => p.PurchaseNo == id);
 
             if (purchase == null)
             {
@@ -93,7 +103,13 @@ namespace RegisterManagement.Controllers
             _context.Purchases.Add(purchase);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetPurchase", new { id = purchase.PurchaseNo }, purchase);
+            return
+                CreatedAtAction
+                (
+                    "GetPurchase",
+                    new { id = purchase.PurchaseNo },
+                    purchase
+                );
         }
 
         // DELETE: api/Purchase/5

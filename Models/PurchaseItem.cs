@@ -13,7 +13,7 @@ namespace RegisterManagement.Models
         public int Id { get; set; }
 
         [Required]
-        private int PurchaseId;
+        private int PurchaseId { get; set; }
 
         [ForeignKey("PurchaseId")]
         public Purchase Purchase { get; set; }

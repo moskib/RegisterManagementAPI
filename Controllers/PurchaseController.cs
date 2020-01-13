@@ -86,6 +86,24 @@ namespace RegisterManagement.Controllers
         }
 
         // POST: api/Purchase
+        [HttpPost("visa")]
+        public async Task<ActionResult<Purchase[]>> GetPurchasesByVisa(Purchase purchase)
+        {
+            if (purchase.VisaNo == null)
+            {
+                return NotFound();
+            }
+
+            return await (from p in _context.Purchases
+                          where p.VisaNo == purchase.VisaNo
+                          orderby p.DateOfPurchase
+                          select p)
+                          .Include(p => p.PurchaseItems)
+                          .ThenInclude(p => p.Item)
+                          .ToArrayAsync();
+        }
+
+        // POST: api/Purchase
         [HttpPost]
         public async Task<ActionResult<Purchase>> PostPurchase(Purchase purchase)
         {

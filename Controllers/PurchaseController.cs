@@ -8,10 +8,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 using RegisterManagement.Data;
+using RegisterManagement.Enums;
 using RegisterManagement.Models;
 
 namespace RegisterManagement.Controllers
 {
+
     [Route("api/[controller]")]
     [ApiController]
     public class PurchaseController : ControllerBase
@@ -43,12 +45,24 @@ namespace RegisterManagement.Controllers
         {
             // TO DO:
             // do not include purchase items where retuned == true
+            //var purchase =
+            //    await _context
+            //        .Purchases
+            //        .Include(p => p.PurchaseItems)
+            //        .ThenInclude(pi => pi.Item)
+            //        .FirstOrDefaultAsync(p => p.PurchaseNo == id);
+
+            // CHECK THIS!!
             var purchase =
-                await _context
-                    .Purchases
-                    .Include(p => p.PurchaseItems)
-                    .ThenInclude(pi => pi.Item)
-                    .FirstOrDefaultAsync(p => p.PurchaseNo == id);
+                await (from p in _context.Purchases
+                 from pi in _context.PurchaseItems
+                 where p.PurchaseNo == id && 
+                     p.PurchaseNo == pi.PurchaseId && 
+                     pi.Returned == false
+                 select p)
+                 .Include(p => p.PurchaseItems)
+                 .ThenInclude(pi => pi.Item)
+                 .SingleOrDefaultAsync();
 
             if (purchase == null)
             {
@@ -65,23 +79,40 @@ namespace RegisterManagement.Controllers
 
             if (!PurchaseExists(id))
             {
-                return BadRequest();
+                return BadRequest("This purchase doesn't exist");
             }
 
+            if(data["retunedItems"] == null)
+            {
+                return BadRequest("No return items provided");
+            }
+
+            // get purchase and items being returned.
+            var purchase = await _context.Purchases.FindAsync(id);
             PurchaseItem[] returnedItems = data["returnedItems"].ToObject<PurchaseItem[]>();
 
-            var purchasedItems = await (from pi in _context.PurchaseItems
-                                        from ri in returnedItems
-                                        where pi.Id == ri.Id
-                                        select pi).Include(p => p.Item).ToArrayAsync();
-            if (purchasedItems.Any(pi => pi.Item.IsRefundable == false))
+            // get return condition based on the date, and whether it meets store policy (item.IsRefundable != false)
+            ReturnTypes returnCondition = await GetReturnType(purchase, returnedItems);
+
+            string returnMessage = "";
+
+            switch (returnCondition)
             {
-                return BadRequest();
+                case ReturnTypes.NonRefundable:
+                    return BadRequest("One or more of the passed items are non-refundable");
+                case ReturnTypes.FullRefund:
+                    returnMessage = "Returned for a full refund";
+                    break;
+                case ReturnTypes.StoreCredit:
+                    returnMessage = "Returned for store credit";
+                    break;
             }
 
-            //purchase.DateModified = DateTime.Now;
+            ReturnItems(returnedItems);
 
-            //_context.Entry(purchase).State = EntityState.Modified;
+            purchase.DateModified = DateTime.Now;
+
+            _context.Entry(purchase).State = EntityState.Modified;
 
             try
             {
@@ -89,32 +120,70 @@ namespace RegisterManagement.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!PurchaseExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                throw;
             }
 
-            return NoContent();
+            return Ok(returnMessage);
         }
 
-        private async Task<bool> CheckIfCanBeRetuned(int purchaseNo, PurchaseItem[] purchaseItems)
+        public async void ReturnItems(PurchaseItem[] purchaseItems)
+        {
+            var inventory = await (from i in _context.Inventory
+                             from pi in purchaseItems
+                             where i.ItemId == pi.ItemId
+                             orderby i.ItemId
+                             select i).ToArrayAsync();
+
+            // order by item Id to not get mixed amounts.
+            purchaseItems = purchaseItems.OrderBy(p => p.ItemId).ToArray();
+
+            // change item status to returned = true
+            for(int i = 0; i < purchaseItems.Length; i++)
+            {
+                purchaseItems[i].Returned = true;
+                inventory[i].Amount += purchaseItems[i].Amount;
+
+                _context.Entry(purchaseItems[i]).State = EntityState.Modified;
+                _context.Entry(inventory[i]).State = EntityState.Modified;
+            }
+        }
+
+        private async Task<ReturnTypes> GetReturnType(Purchase purchase, PurchaseItem[] returnItems)
         {
 
+            var totalDaysSincePurchase = (DateTime.Now - purchase.DateOfPurchase).TotalDays;
 
-            // 1. check that none of the items have isRefundable == false
-            //      - if there is an item that has isRefundable == false, return ReturnTypes.NonRefundable // badrequest
+            if(totalDaysSincePurchase > 30.00)
+            {
+                return ReturnTypes.NonRefundable;
+            }
+
+
+            var purchasedItems = await (from pi in _context.PurchaseItems
+                                        from ri in returnItems
+                                        where pi.Id == ri.Id
+                                        select pi).Include(p => p.Item).ToArrayAsync();
+
+            if (purchasedItems.Any(pi => pi.Item.IsRefundable == false))
+            {
+                return ReturnTypes.NonRefundable;
+            }
+
+            if (totalDaysSincePurchase <= 15)
+            {
+                return ReturnTypes.FullRefund;
+            }
+
+            if(totalDaysSincePurchase > 15 && totalDaysSincePurchase <= 30)
+            {
+                return ReturnTypes.FullRefund;
+            }
+
             // 2. check if the the current time no longer than 15 days since the purchse
             //      - if it is, return ReturnTypes.FullRefund // (SomeOtherFunctionToChangeReturnedToTrue()) and return message: "returned for full refund"
             // 3. check if the currentTime is between 15 to 30 days of purchase
             //      - if it is, return ReturnTypes.StoreCredit // (SomeOtherFunctionToChangeReturnedToTrue()) and return message: "returned for store credit"
-            // 4. check if the current time is longer than 30 days
-            //      - if it is, return ReturnTypes.NonRefundable // badrequest
-            return true;
+            return ReturnTypes.NonRefundable;
         }
 
         // POST: api/Purchase/visa <- lookup a purchase via visa

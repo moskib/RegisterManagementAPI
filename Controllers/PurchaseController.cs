@@ -62,6 +62,8 @@ namespace RegisterManagement.Controllers
                 return BadRequest();
             }
 
+            purchase.DateModified = DateTime.Now;
+
             _context.Entry(purchase).State = EntityState.Modified;
 
             try
@@ -87,11 +89,10 @@ namespace RegisterManagement.Controllers
         [HttpPost]
         public async Task<ActionResult<Purchase>> PostPurchase(Purchase purchase)
         {
-            if(purchase.VisaNo != null)
+            // check if there's a visa number, if so, check if it is valid.
+            if (purchase.VisaNo != null)
             {
-                string regexPattern = 
-                    @"\b4[0-9]{12}(?:[0-9]{3})?\b|\b5[1-5][0-9]{14}\b|\b3[47][0-9]{13}\b|\b3(?:0[0-5]|[68][0-9])[0-9]{11}\b|\b6(?:011|5[0-9]{2})[0-9]{12}\b|\b(?:2131|1800|35\d{3})\d{11}\b";
-                if (!Regex.IsMatch(purchase.VisaNo, regexPattern))
+                if (!ValidVisa(purchase.VisaNo))
                 {
                     return BadRequest("Invalid visa number");
                 }
@@ -99,6 +100,8 @@ namespace RegisterManagement.Controllers
 
             purchase.DateOfPurchase = DateTime.Now;
             purchase.DateModified = DateTime.Now;
+
+            UpdateInventoryAmounts(purchase);
 
             _context.Purchases.Add(purchase);
             await _context.SaveChangesAsync();
@@ -110,6 +113,33 @@ namespace RegisterManagement.Controllers
                     new { id = purchase.PurchaseNo },
                     purchase
                 );
+        }
+
+        public bool ValidVisa(string visa)
+        {
+            string regexPattern =
+                    @"\b4[0-9]{12}(?:[0-9]{3})?\b|\b5[1-5][0-9]{14}\b|\b3[47][0-9]{13}\b|\b3(?:0[0-5]|[68][0-9])[0-9]{11}\b|\b6(?:011|5[0-9]{2})[0-9]{12}\b|\b(?:2131|1800|35\d{3})\d{11}\b";
+            return Regex.IsMatch(visa, regexPattern);
+        }
+
+        //TODO: Test this!!!
+        public async void UpdateInventoryAmounts(Purchase purchase) 
+        {
+            var allInventoryItems = await _context.Inventory.ToArrayAsync();
+            var purchaseItems = purchase.PurchaseItems.ToArray();
+
+            var inventoryItems = (from pi in purchaseItems
+                                 from ii in allInventoryItems
+                                 where pi.ItemId == ii.ItemId
+                                 select ii).ToArray();
+
+            for(int i = 0; i < inventoryItems.Length; i++)
+            {
+                inventoryItems[i].Amount -= purchaseItems[i].Amount;
+                inventoryItems[i].DateModified = DateTime.Now;
+                _context.Entry(inventoryItems[i]).State = EntityState.Modified;
+            }
+
         }
 
         // DELETE: api/Purchase/5

@@ -27,6 +27,8 @@ namespace RegisterManagement.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Purchase>>> GetPurchases()
         {
+            // TO DO:
+            // do not include purchase items where retuned == true
             return
                 await _context
                     .Purchases
@@ -39,6 +41,8 @@ namespace RegisterManagement.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Purchase>> GetPurchase(int id)
         {
+            // TO DO:
+            // do not include purchase items where retuned == true
             var purchase =
                 await _context
                     .Purchases
@@ -100,14 +104,16 @@ namespace RegisterManagement.Controllers
 
         private async Task<bool> CheckIfCanBeRetuned(int purchaseNo, PurchaseItem[] purchaseItems)
         {
+
+
             // 1. check that none of the items have isRefundable == false
-            //      - if there is an item that has isRefundable == false, return ReturnTypes.NonRefundable
+            //      - if there is an item that has isRefundable == false, return ReturnTypes.NonRefundable // badrequest
             // 2. check if the the current time no longer than 15 days since the purchse
-            //      - if it is, return ReturnTypes.FullRefund
+            //      - if it is, return ReturnTypes.FullRefund // (SomeOtherFunctionToChangeReturnedToTrue()) and return message: "returned for full refund"
             // 3. check if the currentTime is between 15 to 30 days of purchase
-            //      - if it is, return ReturnTypes.StoreCredit
+            //      - if it is, return ReturnTypes.StoreCredit // (SomeOtherFunctionToChangeReturnedToTrue()) and return message: "returned for store credit"
             // 4. check if the current time is longer than 30 days
-            //      - if it is, return ReturnTypes.NonRefundable
+            //      - if it is, return ReturnTypes.NonRefundable // badrequest
             return true;
         }
 

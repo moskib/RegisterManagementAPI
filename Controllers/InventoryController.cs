@@ -102,22 +102,6 @@ namespace RegisterManagement.Controllers
             return CreatedAtAction("GetInventory", new { id = inventory.Id }, inventory);
         }
 
-        // DELETE: api/Inventory/5
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<Inventory>> DeleteInventory(int id)
-        {
-            var inventory = await _context.Inventory.FindAsync(id);
-            if (inventory == null)
-            {
-                return NotFound();
-            }
-
-            _context.Inventory.Remove(inventory);
-            await _context.SaveChangesAsync();
-
-            return inventory;
-        }
-
         private bool InventoryExists(int id)
         {
             return _context.Inventory.Any(e => e.Id == id);

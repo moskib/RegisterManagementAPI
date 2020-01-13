@@ -90,6 +90,14 @@ namespace RegisterManagement.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult<Item>> DeleteItem(int id)
         {
+            var inventoryItem = await _context.Inventory.FirstOrDefaultAsync(invItem => invItem.ItemId == id);
+
+            // If there is a record for the item in the inventory, delete it.
+            if(inventoryItem != null)
+            {
+                _context.Inventory.Remove(inventoryItem);
+            }
+
             var item = await _context.Items.FindAsync(id);
             if (item == null)
             {

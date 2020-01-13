@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json.Linq;
 using RegisterManagement.Data;
 using RegisterManagement.Models;
 
@@ -53,18 +54,30 @@ namespace RegisterManagement.Controllers
             return purchase;
         }
 
-        // PUT: api/Purchase/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutPurchase(int id, Purchase purchase)
+        // PUT: api/Purchase/returns/5
+        [HttpPut("returns/{id}")]
+        public async Task<IActionResult> PutPurchase(int id, [FromBody]JObject data)
         {
-            if (id != purchase.PurchaseNo)
+
+            if (!PurchaseExists(id))
             {
                 return BadRequest();
             }
 
-            purchase.DateModified = DateTime.Now;
+            PurchaseItem[] returnedItems = data["returnedItems"].ToObject<PurchaseItem[]>();
 
-            _context.Entry(purchase).State = EntityState.Modified;
+            var purchasedItems = await (from pi in _context.PurchaseItems
+                                        from ri in returnedItems
+                                        where pi.Id == ri.Id
+                                        select pi).Include(p => p.Item).ToArrayAsync();
+            if (purchasedItems.Any(pi => pi.Item.IsRefundable == false))
+            {
+                return BadRequest();
+            }
+
+            //purchase.DateModified = DateTime.Now;
+
+            //_context.Entry(purchase).State = EntityState.Modified;
 
             try
             {
@@ -85,7 +98,20 @@ namespace RegisterManagement.Controllers
             return NoContent();
         }
 
-        // POST: api/Purchase
+        private async Task<bool> CheckIfCanBeRetuned(int purchaseNo, PurchaseItem[] purchaseItems)
+        {
+            // 1. check that none of the items have isRefundable == false
+            //      - if there is an item that has isRefundable == false, return ReturnTypes.NonRefundable
+            // 2. check if the the current time no longer than 15 days since the purchse
+            //      - if it is, return ReturnTypes.FullRefund
+            // 3. check if the currentTime is between 15 to 30 days of purchase
+            //      - if it is, return ReturnTypes.StoreCredit
+            // 4. check if the current time is longer than 30 days
+            //      - if it is, return ReturnTypes.NonRefundable
+            return true;
+        }
+
+        // POST: api/Purchase/visa <- lookup a purchase via visa
         [HttpPost("visa")]
         public async Task<ActionResult<Purchase[]>> GetPurchasesByVisa(Purchase purchase)
         {

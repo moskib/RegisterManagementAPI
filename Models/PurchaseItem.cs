@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -26,5 +27,8 @@ namespace RegisterManagement.Models
 
         [Required]
         public int Amount { get; set; }
+
+        [DefaultValue(false)]
+        public bool Returned { get; set; }
     }
 }

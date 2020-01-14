@@ -25,12 +25,12 @@ namespace RegisterManagement.Controllers
             _context = context;
         }
 
+        #region "Requests"
+
         // GET: api/Purchase
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Purchase>>> GetPurchases()
         {
-            // TO DO:
-            // do not include purchase items where retuned == true
             return
                 await _context
                     .Purchases
@@ -43,26 +43,12 @@ namespace RegisterManagement.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Purchase>> GetPurchase(int id)
         {
-            // TO DO:
-            // do not include purchase items where retuned == true
-            //var purchase =
-            //    await _context
-            //        .Purchases
-            //        .Include(p => p.PurchaseItems)
-            //        .ThenInclude(pi => pi.Item)
-            //        .FirstOrDefaultAsync(p => p.PurchaseNo == id);
-
-            // CHECK THIS!!
             var purchase =
-                await (from p in _context.Purchases
-                 from pi in _context.PurchaseItems
-                 where p.PurchaseNo == id && 
-                     p.PurchaseNo == pi.PurchaseId && 
-                     pi.Returned == false
-                 select p)
-                 .Include(p => p.PurchaseItems)
-                 .ThenInclude(pi => pi.Item)
-                 .SingleOrDefaultAsync();
+                await _context
+                    .Purchases
+                    .Include(p => p.PurchaseItems)
+                    .ThenInclude(pi => pi.Item)
+                    .FirstOrDefaultAsync(p => p.PurchaseNo == id);
 
             if (purchase == null)
             {
@@ -82,7 +68,7 @@ namespace RegisterManagement.Controllers
                 return BadRequest("This purchase doesn't exist");
             }
 
-            if(data["returnedItems"] == null)
+            if (data["returnedItems"] == null)
             {
                 return BadRequest("No return items provided");
             }
@@ -131,71 +117,7 @@ namespace RegisterManagement.Controllers
             return Ok(returnMessage);
         }
 
-        public void ReturnItems(int purchaseId, PurchaseItem[] returnedItems)
-        {
-            var inventory =  (from ri in returnedItems
-                              from i in _context.Inventory.Where(i => ri.ItemId == i.ItemId)
-                              where i.ItemId == ri.ItemId
-                              orderby i.ItemId
-                              select i).ToArray();
 
-            // order by item Id to not get mixed amounts.
-            returnedItems = returnedItems.OrderBy(p => p.ItemId).ToArray();
-
-            var recordsToUpdate = (from ri in returnedItems
-                                   from pi in _context.PurchaseItems
-                                   .Where(
-                                       p => p.ItemId == ri.ItemId &&
-                                       p.PurchaseId == purchaseId)
-                                   orderby pi.ItemId
-                                   select pi).ToArray();
-
-            // change item status to returned = true
-            for(int i = 0; i < returnedItems.Length; i++)
-            {
-                recordsToUpdate[i].Returned = true;
-                recordsToUpdate[i].AmountReturned = returnedItems[i].Amount;
-                recordsToUpdate[i].Amount -= returnedItems[i].Amount;
-                inventory[i].Amount += returnedItems[i].Amount;
-
-                _context.Entry(recordsToUpdate[i]).State = EntityState.Modified;
-                _context.Entry(inventory[i]).State = EntityState.Modified;
-            }
-        }
-
-        private ReturnTypes GetReturnType(Purchase purchase, PurchaseItem[] returnItems)
-        {
-
-            var totalDaysSincePurchase = (DateTime.Now - purchase.DateOfPurchase).TotalDays;
-
-            if(totalDaysSincePurchase > 30.00)
-            {
-                return ReturnTypes.NonRefundable;
-            }
-
-
-            var items = (from ri in returnItems
-                         from i in _context.Items.Where(i => ri.ItemId == i.Id)
-                         select i).ToArray();
-
-
-            if (items.Any(item => item.IsRefundable == false))
-            {
-                return ReturnTypes.NonRefundable;
-            }
-
-            if (totalDaysSincePurchase <= 15)
-            {
-                return ReturnTypes.FullRefund;
-            }
-
-            if(totalDaysSincePurchase > 15 && totalDaysSincePurchase <= 30)
-            {
-                return ReturnTypes.FullRefund;
-            }
-
-            return ReturnTypes.NonRefundable;
-        }
 
         // POST: api/Purchase/visa <- lookup a purchase via visa
         [HttpPost("visa")]
@@ -210,7 +132,7 @@ namespace RegisterManagement.Controllers
                           where p.VisaNo == purchase.VisaNo
                           orderby p.DateOfPurchase
                           select p)
-                          .Include(p => p.PurchaseItems)
+                          .Include(p => p.PurchaseItems.Where(p => !p.Returned))
                           .ThenInclude(p => p.Item)
                           .ToArrayAsync();
         }
@@ -239,11 +161,16 @@ namespace RegisterManagement.Controllers
             return
                 CreatedAtAction
                 (
-                    "GetPurchase",
+                    nameof(GetPurchase),
                     new { id = purchase.PurchaseNo },
                     purchase
                 );
         }
+
+        #endregion
+
+
+        #region "Helper Functions"
 
         public bool ValidVisa(string visa)
         {
@@ -252,18 +179,17 @@ namespace RegisterManagement.Controllers
             return Regex.IsMatch(visa, regexPattern);
         }
 
-        //TODO: Test this!!!
-        public async void UpdateInventoryAmounts(Purchase purchase) 
+        public async void UpdateInventoryAmounts(Purchase purchase)
         {
             var allInventoryItems = await _context.Inventory.ToArrayAsync();
             var purchaseItems = purchase.PurchaseItems.ToArray();
 
             var inventoryItems = (from pi in purchaseItems
-                                 from ii in allInventoryItems
-                                 where pi.ItemId == ii.ItemId
-                                 select ii).ToArray();
+                                  from ii in allInventoryItems
+                                  where pi.ItemId == ii.ItemId
+                                  select ii).ToArray();
 
-            for(int i = 0; i < inventoryItems.Length; i++)
+            for (int i = 0; i < inventoryItems.Length; i++)
             {
                 inventoryItems[i].Amount -= purchaseItems[i].Amount;
                 inventoryItems[i].DateModified = DateTime.Now;
@@ -272,25 +198,78 @@ namespace RegisterManagement.Controllers
 
         }
 
-        // DELETE: api/Purchase/5
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<Purchase>> DeletePurchase(int id)
-        {
-            var purchase = await _context.Purchases.FindAsync(id);
-            if (purchase == null)
-            {
-                return NotFound();
-            }
-
-            _context.Purchases.Remove(purchase);
-            await _context.SaveChangesAsync();
-
-            return purchase;
-        }
-
         private bool PurchaseExists(int id)
         {
             return _context.Purchases.Any(e => e.PurchaseNo == id);
         }
+
+        public void ReturnItems(int purchaseId, PurchaseItem[] returnedItems)
+        {
+            var inventory = (from ri in returnedItems
+                             from i in _context.Inventory.Where(i => ri.ItemId == i.ItemId)
+                             where i.ItemId == ri.ItemId
+                             orderby i.ItemId
+                             select i).ToArray();
+
+            // order by item Id to not get mixed amounts.
+            returnedItems = returnedItems.OrderBy(p => p.ItemId).ToArray();
+
+            var recordsToUpdate = (from ri in returnedItems
+                                   from pi in _context.PurchaseItems
+                                   .Where(
+                                       p => p.ItemId == ri.ItemId &&
+                                       p.PurchaseId == purchaseId)
+                                   orderby pi.ItemId
+                                   select pi).ToArray();
+
+            // change item status to returned = true
+            for (int i = 0; i < returnedItems.Length; i++)
+            {
+                recordsToUpdate[i].Returned = true;
+                recordsToUpdate[i].AmountReturned = returnedItems[i].Amount;
+                recordsToUpdate[i].Amount -= returnedItems[i].Amount;
+                inventory[i].Amount += returnedItems[i].Amount;
+
+                _context.Entry(recordsToUpdate[i]).State = EntityState.Modified;
+                _context.Entry(inventory[i]).State = EntityState.Modified;
+            }
+        }
+
+        private ReturnTypes GetReturnType(Purchase purchase, PurchaseItem[] returnItems)
+        {
+
+            var totalDaysSincePurchase = (DateTime.Now - purchase.DateOfPurchase).TotalDays;
+
+            if (totalDaysSincePurchase > 30.00)
+            {
+                return ReturnTypes.NonRefundable;
+            }
+
+
+            var items = (from ri in returnItems
+                         from i in _context.Items.Where(i => ri.ItemId == i.Id)
+                         select i).ToArray();
+
+
+            if (items.Any(item => item.IsRefundable == false))
+            {
+                return ReturnTypes.NonRefundable;
+            }
+
+            if (totalDaysSincePurchase <= 15)
+            {
+                return ReturnTypes.FullRefund;
+            }
+
+            if (totalDaysSincePurchase > 15 && totalDaysSincePurchase <= 30)
+            {
+                return ReturnTypes.FullRefund;
+            }
+
+            return ReturnTypes.NonRefundable;
+        }
+
+        #endregion
+
     }
 }

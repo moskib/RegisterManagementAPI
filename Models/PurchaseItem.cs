@@ -30,5 +30,8 @@ namespace RegisterManagement.Models
 
         [DefaultValue(false)]
         public bool Returned { get; set; }
+
+        [DefaultValue(0)]
+        public int AmountReturned { get; set; }
     }
 }

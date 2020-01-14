@@ -60,7 +60,7 @@ namespace RegisterManagement.Controllers
 
         // PUT: api/Purchase/returns/5
         [HttpPut("returns/{id}")]
-        public async Task<IActionResult> PutPurchase(int id, [FromBody]JObject data)
+        public async Task<IActionResult> ReturnPurchase(int id, [FromBody]JObject data)
         {
 
             if (!PurchaseExists(id))

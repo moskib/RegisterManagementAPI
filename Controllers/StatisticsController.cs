@@ -11,5 +11,15 @@ namespace RegisterManagement.Controllers
     [ApiController]
     public class StatisticsController : ControllerBase
     {
+        //[HttpGet("month/{month}")]
+        //public async Task<ActionResult<Object>> GetStatisticsForMonth(int month)
+        //{
+        //    if (month > 12 || month < 1)
+        //    {
+        //        return BadRequest("Invalid Month");
+        //    }
+
+
+        //}
     }
 }

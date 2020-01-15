@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 using RegisterManagement.Data;
+using RegisterManagement.Models;
 
 namespace RegisterManagement.Controllers
 {
@@ -37,37 +38,18 @@ namespace RegisterManagement.Controllers
             DateTime endDate = startDate.AddMonths(1);
 
             var purchaseForMonth =
-                await _context.Purchases
-                .Where(
-                    p =>
-                    p.DateOfPurchase >= startDate && // start day starts at 00:00:00
-                    p.DateOfPurchase < endDate // end date will equal to the first day of the next month. But it starts at 00:00:00
-                 )
-                .Include(p => p.PurchaseItems)
-                .ThenInclude(pi => pi.Item)
-                .Select(p => new
-                {
-                    p.DateOfPurchase.Day,
-                    Purchases = p.PurchaseItems.Sum(p => p.Amount),
-                    Returns = p.PurchaseItems.Sum(p => p.AmountReturned)
-                }).ToArrayAsync();
-
-            //var purchaseForMonth =
-            //    await (from p in _context.Purchases
-            //               .Include(p => p.PurchaseItems)
-            //               .ThenInclude(pi => pi.Item)
-            //           where p.DateOfPurchase >= startDate &&
-            //                 p.DateOfPurchase < endDate
-            //           group p by new { 
-            //               Day = p.DateOfPurchase.Day, 
-            //               Purchases = p.PurchaseItems, 
-            //               Returns = p.PurchaseItems.Sum(pi => pi.AmountReturned)
-            //           } into g
-            //           select new { 
-            //               g.Key.Day,
-            //               Purchases = g.Key.Purchases,
-            //               g.Key.Returns
-            //           }).ToArrayAsync();
+                await (from p in _context.Purchases
+                       join pi in _context.PurchaseItems 
+                        on p.PurchaseNo equals pi.PurchaseId
+                       where p.DateOfPurchase >= startDate &&
+                        p.DateOfPurchase < endDate
+                       group pi by p.DateOfPurchase.Day into g
+                       select new Statistic
+                       {
+                           Day = g.Key,
+                           Purchases = g.Sum(pi => pi.Amount),
+                           Returns = g.Sum(pi => pi.AmountReturned)
+                       }).ToArrayAsync();
 
             return purchaseForMonth;
         }

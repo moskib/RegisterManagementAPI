@@ -132,7 +132,7 @@ namespace RegisterManagement.Controllers
                           where p.VisaNo == purchase.VisaNo
                           orderby p.DateOfPurchase
                           select p)
-                          .Include(p => p.PurchaseItems.Where(p => !p.Returned))
+                          .Include(p => p.PurchaseItems)
                           .ThenInclude(p => p.Item)
                           .ToArrayAsync();
         }

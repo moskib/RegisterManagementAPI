@@ -51,7 +51,10 @@ namespace RegisterManagement.Controllers
                            Returns = g.Sum(pi => pi.AmountReturned)
                        }).ToArrayAsync();
 
+
             return purchaseForMonth;
         }
+
+       
     }
 }

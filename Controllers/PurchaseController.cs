@@ -90,7 +90,7 @@ namespace RegisterManagement.Controllers
             switch (returnCondition)
             {
                 case ReturnTypes.NonRefundable:
-                    return BadRequest("One or more of the passed items are non-refundable");
+                    return BadRequest("Item is non-refundable");
                 case ReturnTypes.FullRefund:
                     returnMessage = "Returned for a full refund";
                     break;
